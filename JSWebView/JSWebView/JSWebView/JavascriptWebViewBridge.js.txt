@@ -1,0 +1,70 @@
+;(function() {
+    if (window.JavascriptWebViewBridge) { return; }
+
+    var sendMessageQueue = [];
+    var responseCallbacks = {};
+    var uniqueId = 1;
+
+    var url = 'mjkscheme://__MJK_QUEUE_MESSAGE__';
+
+	function send(interfaceIdentifier, methodIdentifier, args) {
+		var message = {};
+        message['interfaceIdentifier'] = interfaceIdentifier;
+		message['methodIdentifier'] = methodIdentifier;
+
+		var  formattedArgs = [];
+		for (var i = 0, l = args.length; i < l; i++){
+			var arg = {};
+			if (typeof args[i] == "function"){
+                var callbackId = 'cb_'+(uniqueId++)+'_'+new Date().getTime();
+				arg['type'] = 'function';
+				arg['value'] =  callbackId;
+
+                responseCallbacks[callbackId] =  args[i];
+			}else{
+				arg['type'] = 'object';
+				arg['value'] =  args[i];
+			}
+
+			formattedArgs.push(arg);
+		}	
+
+		message['args'] = formattedArgs;
+        sendMessageQueue.push(message);
+
+        var iframe = document.createElement("IFRAME");
+        iframe.setAttribute("src",  url);
+        document.documentElement.appendChild(iframe);
+        iframe.parentNode.removeChild(iframe);
+        iframe = null;
+	}
+
+	function receiveMessageFromObjC(messageJSON) {
+        var message = JSON.parse(messageJSON);
+        if (message.responseId) {
+            responseCallback = responseCallbacks[message.responseId];
+            if (!responseCallback) { return; }
+
+            responseCallback(message.status, message.responseData);
+            delete responseCallbacks[message.responseId];
+        }
+	}
+
+    function fetchQueueMessage() {
+        var messageQueueString = JSON.stringify(sendMessageQueue);
+        sendMessageQueue = [];
+
+        return messageQueueString;
+    }
+
+	window.JavascriptWebViewBridge = {
+		send: send,
+        receiveMessageFromObjC: receiveMessageFromObjC,
+		fetchQueueMessage: fetchQueueMessage,
+	}
+
+    var readyEvent = doc.createEvent('Events');
+    readyEvent.initEvent('JavascriptWebViewBridgeReady');
+    readyEvent.bridge = JavascriptWebViewBridge;
+    doc.dispatchEvent(readyEvent);
+})();

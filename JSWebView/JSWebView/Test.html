@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head>
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+	<style type='text/css'>
+		html { font-family:Helvetica; color:#222; }
+		h1 { color:steelblue; font-size:24px; margin-top:24px; }
+		button { margin:0 3px 10px; font-size:12px; }
+		.logLine { border-bottom:1px solid #ccc; padding:4px 2px; font-family:courier; font-size:11px; }
+	</style>
+</head><body>
+	<h1>JSWebView Demo</h1>
+	<script>
+
+    function connectJavascriptWebViewBridge(callback) {
+		if (window.JavascriptWebViewBridge) {
+			callback(JavascriptWebViewBridge)
+		} else {
+			document.addEventListener('JavascriptWebViewBridgeReady', function() {
+				callback(JavascriptWebViewBridge)
+			}, false)
+		}
+	}
+	
+    connectJavascriptWebViewBridge(function(bridge) {
+        var args = ['Ansel', //data
+                    'name', //key
+                    function (status, data){ //callback
+                        alert("status:"+status + "data:" + data);
+                     }
+                     ];
+                                   
+        bridge.send('Interface', 'setData', args);
+                                   
+        args = ['name', //key
+                function (status, data){//callback
+                    alert("status:"+status + "data:" + data);
+                }
+              ];
+       
+        bridge.send('Interface', 'getData', args);
+          
+       args = ['app://login', //url
+               function (status, data){//callback
+                   alert("status:"+status + "data:" + data);
+               }
+               ];
+        bridge.send('Interface', 'forward', args);
+                       
+    });
+	</script>
+</body></html>
